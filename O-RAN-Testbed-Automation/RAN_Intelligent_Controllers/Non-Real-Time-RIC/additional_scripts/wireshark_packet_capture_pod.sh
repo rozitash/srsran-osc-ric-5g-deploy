@@ -1,1 +1,0 @@
-../../Near-Real-Time-RIC/additional_scripts/wireshark_packet_capture_pod.sh

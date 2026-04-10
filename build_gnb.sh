@@ -19,7 +19,7 @@ cd "$SCRIPT_DIR"
 
 SRSRAN_SRC="$SCRIPT_DIR/srsran/src"
 SRSRAN_REPO="https://github.com/srsran/srsRAN_Project.git"
-SRSRAN_COMMIT="d2f4b70dda8e2c557d5b05a0ac5f92dbddda19bc"   # NIST L-release commit (release_25_10)
+SRSRAN_COMMIT="1483bda3091420cf7270eacdf31de932865c6294"   # release_24_04 (tutorial-tested, E2AP v03.00)
 
 echo "================================================================="
 echo " Building srsRAN gNB Docker image"
@@ -41,7 +41,7 @@ echo "Building Docker image (this takes ~20-30 minutes)..."
 docker build \
     --build-arg OS_VERSION=24.04 \
     -t srsran/gnb \
-    -f "$SCRIPT_DIR/srsran/docker/Dockerfile" \
+    -f "$SRSRAN_SRC/docker/Dockerfile" \
     "$SRSRAN_SRC"
 
 echo ""

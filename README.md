@@ -4,6 +4,7 @@
 Self-contained deployment of a single-cell 5G SA network with real RF via a
 **USRP B210** and O-RAN E2 monitoring via the **OSC Near-RT RIC** (i-release).
 
+Based on the official [srsRAN O-RAN SC RIC tutorial](https://docs.srsran.com/projects/project/en/latest/tutorials/source/near-rt-ric/source/index.html).
 Everything needed to reproduce the full stack is inside this folder.
 
 ---
@@ -54,6 +55,24 @@ modprobe sctp && echo "SCTP OK"
 
 ---
 
+## Version Compatibility
+
+> **Critical**: The srsRAN gNB E2AP version must match the RIC platform version.
+
+| Component       | Version                | E2AP Spec               |
+|-----------------|------------------------|-------------------------|
+| srsRAN Project  | `release_24_04`        | O-RAN.WG3.E2AP-R003-**v03.00** |
+| OSC Near-RT RIC | i-release              | E2AP v03.00 (encoding `3:1`) |
+| E2 Termination  | `6.0.4`                |                         |
+| E2 Manager      | `6.0.4`                |                         |
+| Subscription Mgr| `0.10.1`               |                         |
+
+> ⚠️ Using srsRAN `release_25_04` or later will encode E2AP as v03.01 (`3:2`),
+> which causes the RIC Subscription Manager to fail decoding subscription
+> responses, breaking the KPM metric pipeline.
+
+---
+
 ## First-Time Setup (Fresh Machine)
 
 The `srsran/gnb` Docker image is large (~5 GB) and takes 20–30 min to build.
@@ -65,8 +84,8 @@ The `srsran/gnb` Docker image is large (~5 GB) and takes 20–30 min to build.
 ```
 
 This script will:
-1. Clone the srsRAN_Project source into `srsran/src/` (pinned commit `fbeb2f0828`)
-2. Build the `srsran/gnb` Docker image using the Dockerfile in `srsran/docker/`
+1. Clone the srsRAN_Project source into `srsran/src/` (pinned to `release_24_04`)
+2. Build the `srsran/gnb` Docker image using the source Dockerfile
 
 > **To check if the image already exists:**
 > ```bash
@@ -293,7 +312,7 @@ sudo kill <PID>
 
 ## Log Files
 
-Runtime logs are written automatically to `clean_deploy/logs/`:
+Runtime logs are written automatically to `logs/`:
 
 | File                | Container          | Contents                          |
 |---------------------|--------------------|-----------------------------------|
@@ -310,7 +329,7 @@ Runtime logs are written automatically to `clean_deploy/logs/`:
 ## Directory Structure
 
 ```
-clean_deploy/
+srsran-osc-ric-5g-deploy/
 ├── docker-compose.yml           ← Full stack definition
 ├── .env                         ← All configurable parameters ← EDIT THIS
 ├── start.sh                     ← Start everything
@@ -321,9 +340,8 @@ clean_deploy/
 ├── build_gnb.sh                 ← Build srsran/gnb image (first time only)
 ├── srsran/
 │   ├── docker/
-│   │   ├── Dockerfile           ← gNB image build recipe
-│   │   └── scripts/             ← UHD, DPDK, srsRAN build helpers
-│   └── src/                     ← Cloned by build_gnb.sh (not committed)
+│   │   └── Dockerfile           ← gNB image build recipe (latest)
+│   └── src/                     ← Cloned by build_gnb.sh (release_24_04, not committed)
 ├── gnb/
 │   └── gnb_b210_single_cell.yml ← gNB radio + E2 configuration
 ├── open5gs/

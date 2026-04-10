@@ -1,6 +1,0 @@
-# Ignore testbed subdirectories
-/configs/
-/logs/
-/open5gs/
-install_time.txt
-!install_patch_files/

@@ -1,1 +1,0 @@
-../../Near-Real-Time-RIC/additional_scripts/cilium_check_enforcement.sh

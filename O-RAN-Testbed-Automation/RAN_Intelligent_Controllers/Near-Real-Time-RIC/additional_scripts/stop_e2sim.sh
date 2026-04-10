@@ -1,1 +1,0 @@
-../install_scripts/stop_e2sim.sh
