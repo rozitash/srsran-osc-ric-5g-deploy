@@ -12,7 +12,7 @@ services:
       - open5gs/open5gs.env
     privileged: true
     ports:
-      - "9999:9999/tcp"
+      - "9998:9999/tcp"
     command: 5gc -c open5gs-5gc.yml
     healthcheck:
       test: [ "CMD-SHELL", "nc -z 127.0.0.20 7777" ]
@@ -114,7 +114,7 @@ services:
       - CFG_FILE=/opt/config/submgr-config.yaml
       - RMR_SEED_RT=/opt/config/submgr-uta-rtg.rt
       - RMR_SRC_ID=${SUBMGR_IP:-10.0.2.13}
-    command: ./submgr -f $${CFG_FILE}
+    command: ./submgr -f /opt/config/submgr-config.yaml
     volumes:
       - type: bind
         source: ${RIC_CONFIGS_PATH:-./ric/configs}/submgr.yaml

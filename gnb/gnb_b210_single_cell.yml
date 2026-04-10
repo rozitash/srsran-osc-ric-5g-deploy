@@ -32,13 +32,6 @@ cell_cfg:
   nof_antennas_ul: 1
   plmn: "99970"
   tac: 7
-  pucch:
-    nof_ue_res_harq_per_set: 1
-    nof_cell_harq_pucch_res_sets: 1
-    f1_nof_cyclic_shifts: 1
-    f1_enable_occ: true
-    f0_or_f1_nof_cell_res_sr: 1
-    f2_or_f3_or_f4_nof_cell_res_csi: 1
 
 cells:
   - pci: 1
