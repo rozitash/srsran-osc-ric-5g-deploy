@@ -1,0 +1,13 @@
+# Ignore testbed subdirectories
+/additional_scripts/pod_pcaps/
+/additional_scripts/srsran_xapps/
+/appmgr/
+/charts/
+/e2-interface/
+/influxdb/
+/logs/
+/ric-dep/
+/xApps/
+influxdb_auth_token.json
+install_time.txt
+!install_patch_files/
