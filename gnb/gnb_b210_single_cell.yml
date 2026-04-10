@@ -1,5 +1,5 @@
 # Configuration for a single gNB with one cell using USRP B210
-gnb_id: 411
+gnb_id: 0x19B0
 gnb_id_bit_length: 32
 
 cu_cp:
@@ -21,7 +21,7 @@ ru_sdr:
   clock: internal
   sync: internal
   srate: 15.36 # Reduced for stability periodically
-  tx_gain: 70
+  tx_gain: 80
   rx_gain: 70
 
 cell_cfg:
@@ -41,25 +41,34 @@ cell_cfg:
     f2_or_f3_or_f4_nof_cell_res_csi: 1
 
 cells:
-  - pci: 2
+  - pci: 1
     dl_arfcn: 632628 # Band 78
     prach:
       prach_root_sequence_index: 0
 
 log:
   filename: /tmp/gnb.log
-  all_level: info
+  all_level: debug
 
 metrics:
   autostart_stdout_metrics: true
-  enable_verbose: true
+  enable_verbose: false
+  layers:
+    enable_rlc: true
+    enable_sched: true
   periodicity:
     du_report_period: 1000
 
+remote_control:
+  enabled: true
+  bind_addr: 0.0.0.0
+  port: 8001
+
+gnb_du_id: 0
 e2:
   enable_cu_cp_e2: true
   enable_du_e2: true
   e2sm_kpm_enabled: true
-  e2sm_rc_enabled: true
+  e2sm_rc_enabled: false
   addr: 127.0.0.1
   port: 36421

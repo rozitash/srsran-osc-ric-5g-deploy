@@ -1,0 +1,84 @@
+# srsRAN Project gNB configuration — Single-cell USRP B210 (COTS UE Optimized)
+#
+# Scenario 8: 1 CU-CP + 1 DU + 1 cell via USRP B210 (USB 3.0)
+#
+# Key features:
+#   - device_driver: uhd (real RF via USRP B210)
+#   - Single cell (PCI 1)
+#   - Optimized for COTS UE (Band 78, 20MHz BW, 30kHz SCS)
+#   - E2SM-KPM monitoring via OSC Near-RT RIC
+#   - AMF via Docker network (10.53.1.2)
+#
+
+gnb_id: 0x19B0
+gnb_id_bit_length: 32
+
+cu_cp:
+  amf:
+    addr: 10.53.1.2                 # AMF address (Open5GS in Docker)
+    port: 38412
+    bind_addr: 10.53.1.1            # gNB bind address (host-side Docker bridge)
+    supported_tracking_areas:
+      - tac: 7
+        plmn_list:
+          - plmn: "99970"
+            tai_slice_support_list:
+              - sst: 1
+  inactivity_timer: 7200
+  mobility:
+    trigger_handover_from_measurements: false # Handover disabled for single cell
+
+ru_sdr:
+  device_driver: uhd
+  device_args: ${USRP_DEVICE_ARGS},num_recv_frames=64,num_send_frames=64
+  clock: internal
+  sync: internal
+  srate: 23.04                      # Standard sample rate for 20MHz BW
+  otw_format: sc12                  # Optimized USB format
+  tx_gain: ${USRP_TX_GAIN}
+  rx_gain: ${USRP_RX_GAIN}
+
+cell_cfg:
+  band: 78                          # The NR band (TDD n78).
+  channel_bandwidth_MHz: 20         # 20MHz BW (matching 23.04 srate)
+  common_scs: 30                    # Subcarrier spacing in kHz.
+  plmn: "99970"
+  tac: 7
+  nof_antennas_dl: 1
+  nof_antennas_ul: 1
+
+cells:
+  - pci: 1
+    dl_arfcn: 632628
+    prach:
+      prach_root_sequence_index: 0
+
+log:
+  filename: /tmp/gnb.log
+  all_level: info
+  hex_max_size: 0
+
+pcap:
+  mac_enable: false
+  mac_filename: /tmp/gnb_mac.pcap
+  ngap_enable: false
+  ngap_filename: /tmp/gnb_ngap.pcap
+  e2ap_enable: true
+  e2ap_du_filename: /tmp/gnb_du_e2ap.pcap
+  e2ap_cu_cp_filename: /tmp/gnb_cu_cp_e2ap.pcap
+  e2ap_cu_up_filename: /tmp/gnb_cu_up_e2ap.pcap
+
+e2:
+  enable_cu_cp_e2: true             # Enable CU-CP E2 agent
+  enable_du_e2: true                # DU E2 agent (KPM measurements)
+  e2sm_kpm_enabled: true
+  e2sm_rc_enabled: true
+  addr: 127.0.0.1
+  port: 36421
+
+metrics:
+  layers:
+    enable_rlc: true
+    enable_sched: true
+  periodicity:
+    du_report_period: 1000

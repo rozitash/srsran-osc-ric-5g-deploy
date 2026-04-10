@@ -1,0 +1,44 @@
+
+--== srsRAN gNB (commit fbeb2f0828) ==--
+
+srsGNB application
+Usage: gnb [OPTIONS] [SUBCOMMAND]
+
+Options:
+  -h,--help                   Print this help message and exit
+  -v,--version                Display program version information and exit
+  -c                          Read config from file
+  --dryrun                    Enable application dry run mode
+  --ran_node_name [srscucp01] 
+                              RAN node name
+  --gnb_cu_up_id ENUM:UINT in [0 - 68719476735] [0] 
+                              gNB-CU-UP Id
+  --gnb_id [411]              gNodeB identifier
+  --gnb_id_bit_length :INT in [22 - 32] [22] 
+                              gNodeB identifier length in bits
+  --gnb_du_id ENUM:UINT in [0 - 68719476735] [0] 
+                              gNB-DU Id
+  --cells TEXT ...            Sets the cell configuration on a per cell basis, overwriting the default configuration defined by cell_cfg
+  --qos TEXT ...              Configures RLC and PDCP radio bearers on a per 5QI basis.
+  --srbs TEXT ...             Configures signaling radio bearers.
+
+Subcommands:
+  log                         Logging configuration
+  trace                       General tracer configuration
+  buffer_pool                 Buffer pool configuration
+  metrics                     Metrics configuration
+  expert_execution            Expert execution configuration
+  hal                         HAL configuration
+  remote_control              Remote control configuration
+  cu_cp                       CU-CP parameters
+  pcap                        PCAP configuration
+  e2                          E2 parameters
+  cu_up                       CU-UP parameters
+  cell_cfg                    Default cell configuration
+  du                          DU parameters
+  ntn                         Default NTN configuration
+  test_mode                   Test mode configuration
+  expert_phy                  Expert physical layer configuration
+  ru_ofh                      Open Fronthaul Radio Unit configuration
+  ru_sdr                      SDR Radio Unit configuration
+  ru_dummy                    Dummy Radio Unit configuration

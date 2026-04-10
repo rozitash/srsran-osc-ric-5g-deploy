@@ -1,0 +1,338 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-datasource" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisLabel": "Throughput (kbps)",
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "scheme",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 500 },
+              { "color": "red", "value": 2000 }
+            ]
+          },
+          "unit": "kbps"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "DRB.UEThpDl_kbps" },
+            "properties": [
+              { "id": "displayName", "value": "DL — gNB 1 (411)" },
+              { "id": "color", "value": { "fixedColor": "#73BF69", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "DRB.UEThpUl_kbps" },
+            "properties": [
+              { "id": "displayName", "value": "UL — gNB 1 (411)" },
+              { "id": "color", "value": { "fixedColor": "#5794F2", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "DRB.UEThpDl_kbps 1" },
+            "properties": [
+              { "id": "displayName", "value": "DL — gNB 2 (412)" },
+              { "id": "color", "value": { "fixedColor": "#FF6347", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "DRB.UEThpUl_kbps 1" },
+            "properties": [
+              { "id": "displayName", "value": "UL — gNB 2 (412)" },
+              { "id": "color", "value": { "fixedColor": "#FFAA33", "mode": "fixed" } }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "legend": { "calcs": ["mean", "max", "lastNotNull"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "title": "UE DRB Throughput — Per gNB (DL / UL)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "columns": [
+            { "selector": "Timestamp", "text": "Timestamp", "type": "timestamp" },
+            { "selector": "DRB.UEThpDl_kbps", "text": "DRB.UEThpDl_kbps", "type": "number" },
+            { "selector": "DRB.UEThpUl_kbps", "text": "DRB.UEThpUl_kbps", "type": "number" }
+          ],
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-datasource" },
+          "filters": [],
+          "format": "timeseries",
+          "parser": "backend",
+          "refId": "A",
+          "source": "url",
+          "type": "csv",
+          "url": "http://host.docker.internal:3030/KPI_Metrics.csv",
+          "url_options": { "method": "GET" }
+        },
+        {
+          "columns": [
+            { "selector": "Timestamp", "text": "Timestamp", "type": "timestamp" },
+            { "selector": "DRB.UEThpDl_kbps", "text": "DRB.UEThpDl_kbps", "type": "number" },
+            { "selector": "DRB.UEThpUl_kbps", "text": "DRB.UEThpUl_kbps", "type": "number" }
+          ],
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-datasource" },
+          "filters": [],
+          "format": "timeseries",
+          "parser": "backend",
+          "refId": "B",
+          "source": "url",
+          "type": "csv",
+          "url": "http://host.docker.internal:3030/KPI_Metrics_412.csv",
+          "url_options": { "method": "GET" }
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-datasource" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisLabel": "Gain (0-1)",
+            "drawStyle": "line",
+            "fillOpacity": 25,
+            "gradientMode": "opacity",
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" }
+          },
+          "mappings": [],
+          "min": 0,
+          "max": 1.1,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "transparent", "value": null }] }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Cell1_Gain" },
+            "properties": [
+              { "id": "displayName", "value": "gNB 1 Gain (411)" },
+              { "id": "color", "value": { "fixedColor": "#73BF69", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Cell2_Gain" },
+            "properties": [
+              { "id": "displayName", "value": "gNB 2 Gain (412)" },
+              { "id": "color", "value": { "fixedColor": "#FF6347", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Serving_Cell" },
+            "properties": [
+              { "id": "displayName", "value": "Serving Cell" },
+              { "id": "color", "value": { "fixedColor": "#FFAA33", "mode": "fixed" } },
+              { "id": "custom.drawStyle", "value": "line" },
+              { "id": "custom.lineWidth", "value": 3 },
+              { "id": "custom.fillOpacity", "value": 0 },
+              { "id": "custom.axisPlacement", "value": "right" },
+              { "id": "custom.axisLabel", "value": "Serving Cell" }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 10 },
+      "id": 5,
+      "options": {
+        "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "title": "gNB Gains & Serving Cell (Handover Indicator)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "columns": [
+            { "selector": "Timestamp", "text": "Timestamp", "type": "timestamp" },
+            { "selector": "Cell1_Gain", "text": "Cell1_Gain", "type": "number" },
+            { "selector": "Cell2_Gain", "text": "Cell2_Gain", "type": "number" },
+            { "selector": "Serving_Cell", "text": "Serving_Cell", "type": "number" }
+          ],
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-datasource" },
+          "filters": [],
+          "format": "timeseries",
+          "parser": "backend",
+          "refId": "A",
+          "source": "url",
+          "type": "csv",
+          "url": "http://host.docker.internal:3030/KPI_Metrics.csv",
+          "url_options": { "method": "GET" }
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-datasource" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [
+            { "type": "value", "options": { "1": { "text": "gNB 1 (411)", "color": "#73BF69" }, "2": { "text": "gNB 2 (412)", "color": "#FF6347" } } }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "#73BF69", "value": null },
+              { "color": "#FF6347", "value": 2 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 18 },
+      "id": 6,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/Serving_Cell/", "values": false },
+        "textMode": "auto"
+      },
+      "title": "Serving gNB",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-datasource" },
+          "columns": [
+            { "selector": "Serving_Cell", "text": "Serving_Cell", "type": "number" }
+          ],
+          "filters": [],
+          "format": "table",
+          "parser": "backend",
+          "refId": "A",
+          "source": "url",
+          "type": "csv",
+          "url": "http://host.docker.internal:3030/KPI_Metrics.csv",
+          "url_options": { "method": "GET" }
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-datasource" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          },
+          "unit": "kbps"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 18 },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/DRB\\.UEThpDl_kbps/", "values": false },
+        "textMode": "auto"
+      },
+      "title": "Current DL Throughput (gNB 1)",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-datasource" },
+          "columns": [
+            { "selector": "DRB.UEThpDl_kbps", "text": "DRB.UEThpDl_kbps", "type": "number" }
+          ],
+          "filters": [],
+          "format": "table",
+          "parser": "backend",
+          "refId": "A",
+          "source": "url",
+          "type": "csv",
+          "url": "http://host.docker.internal:3030/KPI_Metrics.csv",
+          "url_options": { "method": "GET" }
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-datasource" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "orange", "value": null }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 18 },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["count"], "fields": "/DRB\\.UEThpDl_kbps/", "values": false },
+        "textMode": "auto"
+      },
+      "title": "Total KPM Reports",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-datasource" },
+          "format": "table",
+          "parser": "backend",
+          "refId": "A",
+          "source": "url",
+          "type": "csv",
+          "url": "http://host.docker.internal:3030/KPI_Metrics.csv",
+          "url_options": { "method": "GET" }
+        }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": ["oran", "kpm", "srsran", "handover", "inter-gnb"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30m", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "O-RAN KPM Monitor — Inter-gNB Handover",
+  "uid": "oran-kpm-dashboard",
+  "version": 3
+}

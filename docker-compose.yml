@@ -213,59 +213,67 @@ services:
         ipv4_address: ${E2MGR_IP:-10.0.2.11}
 
   # ===================== Monitoring (Grafana Stack) =====================
-  telegraf:
-    container_name: telegraf
-    image: srsran/telegraf
+  python_xapp_runner:
+    container_name: python_xapp_runner
+    image: python_xapp_runner:latest
     build:
-      context: ./telegraf
-    depends_on:
-      influxdb:
-        condition: service_healthy
-    env_file:
-      - .env
-    networks:
-      metrics:
-        ipv4_address: 172.25.1.4
-
-  influxdb:
-    container_name: influxdb
-    image: influxdb:${INFLUXDB3_VERSION}
-    user: "0:0"
-    volumes:
-      - influxdb-storage:/var/lib/influxdb3:rw
-    env_file:
-      - .env
+      context: ./ric/images/ric-plt-xapp-frame-py
     environment:
-      - LOG_FILTER=${INFLUXDB3_LOG_LEVEL}
-    command: >
-      --object-store=memory --data-dir=/var/lib/influxdb3 --plugin-dir=/var/lib/influxdb3-plugins --node-id="node0" --http-bind="${INFLUXDB3_HTTP_BIND_ADDR}" --without-auth
-    restart: on-failure:10
-    healthcheck:
-      test: >
-        curl -f ${INFLUXDB3_HOST_URL}/health
-      timeout: 5s
-      interval: 1s
+      - PYTHONUNBUFFERED=1
+      - RMR_SEED_RT=/opt/ric/config/uta-rtg.rt
+      - RMR_SRC_ID=${XAPP_PY_RUNNER_IP}
+      - RMR_RTG_SVC # leave empty
+      - XAPP_LOGS_DIR=/logs
+    stdin_open: true
+    tty: true
+    # Run the CSV writer as the main process
+    command: python3 /xapp_csv_writer.py --ric osc
+    volumes:
+      - ./ric/configs/routes.rtg:/opt/ric/config/uta-rtg.rt
+      - ./ric/xApps/python:/opt/xApps
+      - ./ric/xApps/xapp_csv_writer.py:/xapp_csv_writer.py
+      - ./logs:/logs
+    networks:
+      ric_network:
+        ipv4_address: ${XAPP_PY_RUNNER_IP}
+    depends_on:
+      ric_submgr:
+        condition: service_started
+      ric_e2term:
+        condition: service_started
+      ric_e2mgr:
+        condition: service_started
+
+  csv_server:
+    container_name: csv_server
+    image: python:3.11-slim
+    ports:
+      - "3030:3030"
+    volumes:
+      - ./logs:/logs
+      - ./ric/xApps/csv_http_server.py:/csv_http_server.py
+    working_dir: /logs
+    command: python3 /csv_http_server.py
     networks:
       metrics:
-        ipv4_address: 172.25.1.5
+        ipv4_address: ${CSV_SERVER_IP}
 
   grafana:
     container_name: grafana
-    image: srsran/grafana
-    build:
-      context: ./grafana
-      args:
-        GF_VERSION: ${GF_VERSION}
-        LOGO_URL: ${GF_LOGO_URL}
+    image: grafana/grafana:10.4.2
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=yesoreyeram-infinity-datasource
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/kpm_dashboard.json
     volumes:
       - grafana-storage:/var/lib/grafana:rw
-    env_file:
-      - .env
-    depends_on:
-      telegraf:
-        condition: service_started
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
     ports:
-      - 3300:${GF_PORT}
+      - 3300:3000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       metrics:
         ipv4_address: 172.25.1.6
@@ -291,15 +299,16 @@ services:
         mkdir -p /var/log/srsran
         echo "=== Log collector started at $$(date) ===" | tee -a /var/log/srsran/collector.log
         while true; do
-          for container in open5gs_5gc srsran_gnb ric_e2term ric_e2mgr ric_submgr ric_dbaas ric_appmgr; do
+          for container in open5gs_5gc srsran_gnb ric_e2term ric_e2mgr ric_submgr ric_dbaas ric_appmgr python_xapp_runner; do
             case $$container in
-              "open5gs_5gc") log_file="/var/log/srsran/core.log" ;;
-              "srsran_gnb")  log_file="/var/log/srsran/gnb.log" ;;
-              "ric_e2term")  log_file="/var/log/srsran/ric_e2term.log" ;;
-              "ric_e2mgr")   log_file="/var/log/srsran/ric_e2mgr.log" ;;
-              "ric_submgr")  log_file="/var/log/srsran/ric_submgr.log" ;;
-              "ric_dbaas")   log_file="/var/log/srsran/ric_dbaas.log" ;;
-              "ric_appmgr")  log_file="/var/log/srsran/ric_appmgr.log" ;;
+              "open5gs_5gc")         log_file="/var/log/srsran/core.log" ;;
+              "srsran_gnb")          log_file="/var/log/srsran/gnb.log" ;;
+              "ric_e2term")          log_file="/var/log/srsran/ric_e2term.log" ;;
+              "ric_e2mgr")           log_file="/var/log/srsran/ric_e2mgr.log" ;;
+              "ric_submgr")          log_file="/var/log/srsran/ric_submgr.log" ;;
+              "ric_dbaas")           log_file="/var/log/srsran/ric_dbaas.log" ;;
+              "ric_appmgr")          log_file="/var/log/srsran/ric_appmgr.log" ;;
+              "python_xapp_runner")  log_file="/var/log/srsran/monitor.log" ;;
             esac
             if ! pgrep -f "docker logs -f $$container" > /dev/null; then
               docker logs -f $$container >> $$log_file 2>&1 &

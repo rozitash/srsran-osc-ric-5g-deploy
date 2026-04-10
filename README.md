@@ -10,24 +10,23 @@ Everything needed to reproduce the full stack is inside this folder.
 
 ## Architecture
 
-```
-                   ┌──────────────────────────────┐
-                   │       OSC Near-RT RIC         │
-                   │  e2term · e2mgr · submgr      │
-                   │  appmgr · dbaas · rtmgr_sim   │
-                   └──────────┬───────────────────┘
-                        E2AP (SCTP 36421)
-               ┌─────────────▼────────────────────┐
-               │      srsRAN gNB (USRP B210)       │
-               │  CU-CP E2 · DU E2 (KPM/RC)        │
-               │  Cell PCI-2 · Band n78 · 10 MHz   │
-               └─────────────┬────────────────────┘
-                    N2/N3     │      Real RF (3489 MHz)
-               ┌─────────────▼────────────────────┐
-               │    Open5GS 5G Core                │
-               │  AMF · SMF · UPF · NRF · ...      │
-               └──────────────────────────────────┘
-```
+                    ┌──────────────────────────────┐
+                    │       OSC Near-RT RIC         │
+                    │  e2term · e2mgr · submgr      │
+                    │  appmgr · dbaas · rtmgr_sim   │
+                    │  xApp Monitor (kpimon)        │
+                    └──────────┬───┬────────────────┘
+                         E2AP  │   │ CSV Metrics
+                    (SCTP)  ┌──┘   └──┐
+               ┌────────────▼──┐     ┌▼─────────────┐
+               │  srsRAN gNB   │     │ Grafana      │
+               │ (USRP B210)   │     │ Performance  │
+               └────────────┬──┘     └▲─────────────┘
+                    N2/N3   │      Real RF (3489 MHz)
+               ┌────────────▼┐       │
+               │   Open5GS   │   ┌───▼────────────┐
+               │   5G Core   │   │  COTS UE / srsUE │
+               └─────────────┘   └────────────────┘
 
 ---
 
@@ -222,13 +221,11 @@ docker logs srsran_gnb | grep -i "rrc\|attach\|pdu"
 
 Open your browser at: **http://localhost:3300**
 
-Dashboards are pre-provisioned for:
-- **Performance** — DL/UL throughput, MCS, BLER
-- **CU-CP** — RRC states, UE counts
-- **RRC** — Connection setup/release events
-- **NGAP** — N2 interface messages
+Metrics flow: `srsRAN gNB → RIC E2 → Python xApp → CSV File → Grafana (Infinity)`
 
-Metrics flow: `srsRAN gNB → Telegraf (WebSocket) → InfluxDB → Grafana`
+- **xApp Framework**: The `python_xapp_runner` container provides the O-RAN SC Python framework.
+- **Metric Writer**: The `monitor_xapp` container runs a script that parses xApp output and writes it to `./logs/KPI_Metrics.csv`.
+- **CSV Server**: The `csv_server` container serves the file over HTTP for Grafana.
 
 ---
 
@@ -277,19 +274,20 @@ sudo kill <PID>
 
 ## Services Reference
 
-| Container         | Role                              | IP / Port              |
-|-------------------|-----------------------------------|------------------------|
-| `open5gs_5gc`     | 5G Core (AMF, SMF, UPF, NRF …)   | 10.53.1.2              |
-| `srsran_gnb`      | gNB — USRP B210, 1 cell, E2      | host network           |
-| `ric_dbaas`       | Redis SDL (RIC database)          | 10.0.2.12:6379         |
-| `ric_rtmgr_sim`   | RMR Routing Manager Simulator     | 10.0.2.15:12020        |
-| `ric_e2term`      | E2 Termination Point              | 10.0.2.10:**36421**/SCTP |
-| `ric_submgr`      | E2 Subscription Manager           | 10.0.2.13:4560         |
-| `ric_appmgr`      | xApp Manager                      | 10.0.2.14:8080         |
-| `ric_e2mgr`       | E2 Manager (REST API)             | 10.0.2.11:**3800**/HTTP |
-| `influxdb`        | Time-series DB                    | 172.25.1.5:8081        |
-| `telegraf`        | Metrics collector                 | 172.25.1.4             |
-| `grafana`         | Dashboard UI                      | localhost:**3300**     |
+| Container            | Role                              | IP / Port              |
+|----------------------|-----------------------------------|------------------------|
+| `open5gs_5gc`        | 5G Core (AMF, SMF, UPF, NRF …)   | 10.53.1.2              |
+| `srsran_gnb`         | gNB — USRP B210, 1 cell, E2      | host network           |
+| `ric_dbaas`          | Redis SDL (RIC database)          | 10.0.2.12:6379         |
+| `ric_rtmgr_sim`      | RMR Routing Manager Simulator     | 10.0.2.15:12020        |
+| `ric_e2term`         | E2 Termination Point              | 10.0.2.10:**36421**/SCTP |
+| `ric_submgr`         | E2 Subscription Manager           | 10.0.2.13:4560         |
+| `ric_appmgr`         | xApp Manager                      | 10.0.2.14:8080         |
+| `ric_e2mgr`          | E2 Manager (REST API)             | 10.0.2.11:**3800**/HTTP |
+| `python_xapp_runner` | xApp runtime environment          | 10.0.2.20              |
+| `monitor_xapp`       | Parsing xApp output to CSV       | 10.0.2.21              |
+| `csv_server`         | HTTP server for Grafana CSV       | 172.25.1.7:**3030**    |
+| `grafana`            | Dashboard UI (admin/admin)        | localhost:**3300**     |
 
 ---
 
@@ -337,16 +335,14 @@ clean_deploy/
 │   ├── setup_tun.py
 │   └── subscriber_db.csv        ← SIM credentials ← EDIT THIS
 ├── ric/
-│   ├── configs/
-│   │   ├── routes.rtg           ← RMR inter-component routing
-│   │   ├── e2term.conf          ← E2 Termination settings
-│   │   ├── e2mgr.yaml           ← E2 Manager settings
-│   │   ├── submgr.yaml          ← Subscription Manager settings
-│   │   └── appmgr.yaml          ← App Manager settings
+│   ├── configs/                 ← E2Term, E2Mgr, SubMgr, Routes
+│   ├── xApps/                   ← Python xApps and CSV logic
+│   │   ├── xapp_csv_writer.py   ← Python xApp stdout parser
+│   │   ├── csv_http_server.py   ← Serves CSV on port 3030
+│   │   └── python/              ← Source code for KPM xApp
 │   └── images/
-│       └── rtmgr_sim/
-│           └── Dockerfile       ← Routing Manager Simulator (built locally)
-├── grafana/                     ← Grafana dashboards + provisioning
-├── telegraf/                    ← Metrics pipeline config
-└── logs/                        ← Runtime logs (auto-created)
+│       ├── rtmgr_sim/           ← Custom Routing Manager image
+│       └── ric-plt-xapp-frame-py ← Python xApp Framework image
+├── grafana/                     ← Dashboard provisioning (Infinity)
+└── logs/                        ← Logs + KPI_Metrics.csv
 ```
