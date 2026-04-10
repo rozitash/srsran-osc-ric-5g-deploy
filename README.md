@@ -61,7 +61,7 @@ The `srsran/gnb` Docker image is large (~5 GB) and takes 20–30 min to build.
 **Skip this step if the image is already built on your machine.**
 
 ```bash
-# From inside clean_deploy/:
+# From the repo root (srsran-osc-ric-5g-deploy/):
 ./build_gnb.sh
 ```
 
@@ -120,18 +120,33 @@ One row per subscriber. The gNB PLMN (`99970`) must match.
 
 ## Running the Stack
 
-### Start
+### Quick Start
 
 ```bash
-cd clean_deploy/
-./start.sh
-```
+# 1. Clone the repository
+git clone https://github.com/rozitash/srsran-osc-ric-5g-deploy.git
+cd srsran-osc-ric-5g-deploy
 
-This will:
-1. Pull/build all required Docker images
-2. Start Open5GS, the RIC stack, and the gNB
-3. Wait 10 seconds for everything to settle
-4. Automatically run `./check.sh` to confirm connectivity
+# 2. Edit .env — set your USRP serial and RF gains
+nano .env
+
+# 3. First time only: build the srsRAN gNB Docker image (~20-30 min)
+#    Skip if 'srsran/gnb' image already exists on this machine:
+#    docker image inspect srsran/gnb && echo "Already built"
+./build_gnb.sh
+
+# 4. Start the full stack
+./start.sh
+
+# 5. Verify the RIC is connected to the gNB
+./check.sh
+
+# 6. Watch live logs
+./logs.sh
+
+# 7. Stop everything
+./stop.sh
+```
 
 **Expected output:**
 ```
