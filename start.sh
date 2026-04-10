@@ -1,10 +1,6 @@
 #!/bin/bash
 # =============================================================================
 # start.sh — Start the full srsRAN + OSC RIC + Open5GS + Monitoring stack
-#
-# Run from inside clean_deploy/:
-#   cd clean_deploy/
-#   ./start.sh
 # =============================================================================
 set -e
 
@@ -28,7 +24,8 @@ fi
 
 echo ""
 echo "Starting containers (detached)..."
-docker compose up -d
+# Pin project name so stop.sh / restart.sh always find the right containers
+docker compose --project-name srsran-ric-deploy up -d
 
 echo ""
 echo "Waiting 10s for all services to settle..."
