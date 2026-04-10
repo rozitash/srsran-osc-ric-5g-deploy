@@ -1,0 +1,337 @@
+services:
+  # ===================== 5G Core (Open5GS) =====================
+  5gc:
+    container_name: open5gs_5gc
+    build:
+      context: ./open5gs
+      target: open5gs
+      args:
+        OS_VERSION: "22.04"
+        OPEN5GS_VERSION: "v2.7.0"
+    env_file:
+      - open5gs/open5gs.env
+    privileged: true
+    ports:
+      - "9999:9999/tcp"
+    command: 5gc -c open5gs-5gc.yml
+    healthcheck:
+      test: [ "CMD-SHELL", "nc -z 127.0.0.20 7777" ]
+      interval: 3s
+      timeout: 1s
+      retries: 60
+    networks:
+      ran:
+        ipv4_address: 10.53.1.2
+
+  # ===================== srsRAN gNB =====================
+  gnb:
+    container_name: srsran_gnb
+    # Uses the pre-built image. To rebuild from source, run: ./build_gnb.sh
+    image: srsran/gnb
+    build:
+      context: ./srsran/src # populated by build_gnb.sh
+      dockerfile: ../docker/Dockerfile
+      args:
+        OS_VERSION: "24.04"
+    privileged: true
+    cap_add:
+      - SYS_NICE
+      - CAP_SYS_PTRACE
+    network_mode: host
+    ulimits:
+      rtprio: 99
+    environment:
+      - UHD_RPC_TIMEOUT=20000
+    tty: true
+    stdin_open: true
+    volumes:
+      - /dev/bus/usb/:/dev/bus/usb/
+      - /usr/share/uhd/images:/usr/share/uhd/images
+      - gnb-storage:/tmp
+    configs:
+      - gnb_config.yml
+    depends_on:
+      5gc:
+        condition: service_healthy
+    command: gnb -c /gnb_config.yml
+
+  # ===================== OSC Near-RT RIC =====================
+  ric_dbaas:
+    container_name: ric_dbaas
+    hostname: dbaas
+    image: nexus3.o-ran-sc.org:10002/o-ran-sc/ric-plt-dbaas:${DBAAS_VER:-0.6.4}
+    command: redis-server --loadmodule /usr/local/libexec/redismodule/libredismodule.so
+    restart: on-failure:5
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-p", "6379", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      ric_network:
+        ipv4_address: ${DBAAS_IP:-10.0.2.12}
+
+  ric_rtmgr_sim:
+    container_name: ric_rtmgr_sim
+    hostname: rtmgr_sim
+    image: rtmgr_sim:${SC_RIC_VERSION:-i-release}
+    build:
+      context: ./ric/images/rtmgr_sim
+      dockerfile: ./Dockerfile
+      args:
+        SC_RIC_VERSION: ${SC_RIC_VERSION:-i-release}
+    env_file:
+      - .env
+    environment:
+      - CONTAINER_NAME=ric_rtmgr
+      - HOST_NAME=ric_rtmgr_host
+      - POD_NAME=rtmgr_pod
+      - SERVICE_NAME=ric_rtmgr_service
+      - RMR_SEED_RT=/opt/config/uta-rtg.rt
+      - RMR_SRC_ID=${RTMGR_SIM_IP:-10.0.2.15}
+    volumes:
+      - type: bind
+        source: ${RIC_CONFIGS_PATH:-./ric/configs}/routes.rtg
+        target: /opt/config/uta-rtg.rt
+    networks:
+      ric_network:
+        ipv4_address: ${RTMGR_SIM_IP:-10.0.2.15}
+
+  ric_submgr:
+    container_name: ric_submgr
+    hostname: submgr
+    image: nexus3.o-ran-sc.org:10002/o-ran-sc/ric-plt-submgr:${SUBMGR_VER:-0.10.1}
+    depends_on:
+      ric_dbaas:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - CONTAINER_NAME=ric_submgr
+      - HOST_NAME=ric_submgr_host
+      - POD_NAME=submgr_pod
+      - SERVICE_NAME=ric_submgr_service
+      - CFG_FILE=/opt/config/submgr-config.yaml
+      - RMR_SEED_RT=/opt/config/submgr-uta-rtg.rt
+      - RMR_SRC_ID=${SUBMGR_IP:-10.0.2.13}
+    command: ./submgr -f $${CFG_FILE}
+    volumes:
+      - type: bind
+        source: ${RIC_CONFIGS_PATH:-./ric/configs}/submgr.yaml
+        target: /opt/config/submgr-config.yaml
+      - type: bind
+        source: ${RIC_CONFIGS_PATH:-./ric/configs}/routes.rtg
+        target: /opt/config/submgr-uta-rtg.rt
+    networks:
+      ric_network:
+        ipv4_address: ${SUBMGR_IP:-10.0.2.13}
+
+  ric_e2term:
+    container_name: ric_e2term
+    hostname: e2term
+    image: nexus3.o-ran-sc.org:10002/o-ran-sc/ric-plt-e2:${E2TERM_VER:-6.0.4}
+    ports:
+      - "36421:36421/sctp" # Exposed so the gNB (host network) can reach it
+    depends_on:
+      ric_dbaas:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - CONTAINER_NAME=ric_e2term
+      - HOST_NAME=ric_e2term_host
+      - POD_NAME=e2term_pod
+      - SERVICE_NAME=ric_e2term_service
+      - print=1
+      - RMR_SEED_RT=/opt/e2/dockerRouter.txt
+      - RMR_SRC_ID=${E2TERM_IP:-10.0.2.10}
+    command: ./e2 -p config -f config.conf
+    volumes:
+      - type: bind
+        source: ${RIC_CONFIGS_PATH:-./ric/configs}/e2term.conf
+        target: /opt/e2/config/config.conf
+      - type: bind
+        source: ${RIC_CONFIGS_PATH:-./ric/configs}/routes.rtg
+        target: /opt/e2/dockerRouter.txt
+    networks:
+      ric_network:
+        ipv4_address: ${E2TERM_IP:-10.0.2.10}
+
+  ric_appmgr:
+    container_name: ric_appmgr
+    hostname: appmgr
+    image: nexus3.o-ran-sc.org:10002/o-ran-sc/ric-plt-appmgr:${APPMGR_VER:-0.5.7}
+    depends_on:
+      ric_dbaas:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - CONTAINER_NAME=ric_appmgr
+      - HOST_NAME=ric_appmgr_host
+      - POD_NAME=appmgr_pod
+      - SERVICE_NAME=ric_appmgr_service
+      - RMR_SEED_RT=/opt/ric/config/router.txt
+      - RMR_SRC_ID=${APPMGR_IP:-10.0.2.14}
+    volumes:
+      - type: bind
+        source: ${RIC_CONFIGS_PATH:-./ric/configs}/routes.rtg
+        target: /opt/ric/config/router.txt
+      - type: bind
+        source: ${RIC_CONFIGS_PATH:-./ric/configs}/appmgr.yaml
+        target: /opt/ric/config/appmgr.yaml
+    networks:
+      ric_network:
+        ipv4_address: ${APPMGR_IP:-10.0.2.14}
+
+  ric_e2mgr:
+    container_name: ric_e2mgr
+    hostname: e2mgr
+    image: nexus3.o-ran-sc.org:10002/o-ran-sc/ric-plt-e2mgr:${E2MGR_VER:-6.0.4}
+    depends_on:
+      ric_dbaas:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - CONTAINER_NAME=ric_e2mgr
+      - HOST_NAME=ric_e2mgr_host
+      - POD_NAME=e2mgr_pod
+      - SERVICE_NAME=ric_e2mgr_service
+      - RMR_SEED_RT=/opt/E2Manager/router.txt
+      - RMR_SRC_ID=${E2MGR_IP:-10.0.2.11}
+    command: ./main -port=3800 -f /opt/E2Manager/resources/configuration.yaml
+    volumes:
+      - type: bind
+        source: ${RIC_CONFIGS_PATH:-./ric/configs}/routes.rtg
+        target: /opt/E2Manager/router.txt
+      - type: bind
+        source: ${RIC_CONFIGS_PATH:-./ric/configs}/e2mgr.yaml
+        target: /opt/E2Manager/resources/configuration.yaml
+    networks:
+      ric_network:
+        ipv4_address: ${E2MGR_IP:-10.0.2.11}
+
+  # ===================== Monitoring (Grafana Stack) =====================
+  telegraf:
+    container_name: telegraf
+    image: srsran/telegraf
+    build:
+      context: ./telegraf
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    env_file:
+      - .env
+    networks:
+      metrics:
+        ipv4_address: 172.25.1.4
+
+  influxdb:
+    container_name: influxdb
+    image: influxdb:${INFLUXDB3_VERSION}
+    user: "0:0"
+    volumes:
+      - influxdb-storage:/var/lib/influxdb3:rw
+    env_file:
+      - .env
+    environment:
+      - LOG_FILTER=${INFLUXDB3_LOG_LEVEL}
+    command: >
+      --object-store=memory --data-dir=/var/lib/influxdb3 --plugin-dir=/var/lib/influxdb3-plugins --node-id="node0" --http-bind="${INFLUXDB3_HTTP_BIND_ADDR}" --without-auth
+    restart: on-failure:10
+    healthcheck:
+      test: >
+        curl -f ${INFLUXDB3_HOST_URL}/health
+      timeout: 5s
+      interval: 1s
+    networks:
+      metrics:
+        ipv4_address: 172.25.1.5
+
+  grafana:
+    container_name: grafana
+    image: srsran/grafana
+    build:
+      context: ./grafana
+      args:
+        GF_VERSION: ${GF_VERSION}
+        LOGO_URL: ${GF_LOGO_URL}
+    volumes:
+      - grafana-storage:/var/lib/grafana:rw
+    env_file:
+      - .env
+    depends_on:
+      telegraf:
+        condition: service_started
+    ports:
+      - 3300:${GF_PORT}
+    networks:
+      metrics:
+        ipv4_address: 172.25.1.6
+
+  # ===================== Log Collector =====================
+  log_collector:
+    container_name: log_collector
+    image: alpine:3.19
+    volumes:
+      - ./logs:/var/log/srsran
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - 5gc
+      - gnb
+      - ric_e2term
+      - ric_e2mgr
+      - ric_submgr
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        apk add --no-cache docker-cli > /dev/null 2>&1
+        mkdir -p /var/log/srsran
+        echo "=== Log collector started at $$(date) ===" | tee -a /var/log/srsran/collector.log
+        while true; do
+          for container in open5gs_5gc srsran_gnb ric_e2term ric_e2mgr ric_submgr ric_dbaas ric_appmgr; do
+            case $$container in
+              "open5gs_5gc") log_file="/var/log/srsran/core.log" ;;
+              "srsran_gnb")  log_file="/var/log/srsran/gnb.log" ;;
+              "ric_e2term")  log_file="/var/log/srsran/ric_e2term.log" ;;
+              "ric_e2mgr")   log_file="/var/log/srsran/ric_e2mgr.log" ;;
+              "ric_submgr")  log_file="/var/log/srsran/ric_submgr.log" ;;
+              "ric_dbaas")   log_file="/var/log/srsran/ric_dbaas.log" ;;
+              "ric_appmgr")  log_file="/var/log/srsran/ric_appmgr.log" ;;
+            esac
+            if ! pgrep -f "docker logs -f $$container" > /dev/null; then
+              docker logs -f $$container >> $$log_file 2>&1 &
+            fi
+          done
+          sleep 10
+        done
+    networks: {}
+
+configs:
+  gnb_config.yml:
+    file: ./gnb/gnb_b210_single_cell.yml
+
+volumes:
+  gnb-storage:
+  grafana-storage:
+  influxdb-storage:
+
+
+networks:
+  ran:
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.53.1.0/24
+  metrics:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.25.1.0/24
+  ric_network:
+    ipam:
+      driver: default
+      config:
+        - subnet: ${RIC_SUBNET:-10.0.2.0/24}

@@ -1,0 +1,15 @@
+# Runtime logs
+logs/*.log
+logs/
+
+# srsRAN source (cloned by build_gnb.sh — too large for git)
+srsran/src/
+
+# Docker build cache artifacts
+*.pyc
+__pycache__/
+
+# Editor temp files
+*.swp
+*~
+.DS_Store
