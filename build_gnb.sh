@@ -19,7 +19,7 @@ cd "$SCRIPT_DIR"
 
 SRSRAN_SRC="$SCRIPT_DIR/srsran/src"
 SRSRAN_REPO="https://github.com/srsran/srsRAN_Project.git"
-SRSRAN_COMMIT="fbeb2f0828"   # Pinned to the tested commit
+SRSRAN_COMMIT="d2f4b70dda8e2c557d5b05a0ac5f92dbddda19bc"   # NIST L-release commit (release_25_10)
 
 echo "================================================================="
 echo " Building srsRAN gNB Docker image"

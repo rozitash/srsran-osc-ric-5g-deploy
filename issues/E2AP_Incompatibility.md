@@ -1,44 +1,33 @@
-# E2 Connectivity Issue: RIC xApp Subscription Failure (503 / Timeout)
+# E2AP Protocol Incompatibility Report (Updated)
 
-## Summary
-The current deployment of the OSC Near-RT RIC (i-release) and srsRAN gNB (24.04) is experiencing a protocol-level incompatibility during the E2 subscription handshake. While the individual components are healthy and properly networked, they cannot successfully exchange KPM measurement reports.
-
----
-
-## Technical Findings
-
-### 1. Root Cause: E2AP Unpacking Error
-The RIC's Subscription Manager (`ric_submgr`) successfully receives the REST subscription request from the xApp but fails to process the E2AP response from the gNB.
-*   **Error Message**: `err(unpack e2ap logbuffer() pduinfo(msginfo(3:2)) expinfo(msginfo(3:1)))`
-*   **Interpretation**: The E2 Termination (`e2term`) receives a **Successful Outcome (3:2)** from the gNB but the parsing library in the i-release RIC expects a different binary format or E2AP version (likely v2.0 vs v3.0).
-
-### 2. Stabilization Achieved
-Before identifying the protocol mismatch, several infrastructure-level issues were resolved:
-*   **gNB Stability**: Disabled `e2sm_rc_enabled` which was causing gNB crashes every 50 seconds.
-*   **UE Connectivity**: Updated Open5GS AMF security settings to allow `NIA0` (null integrity), enabling the UE to register and generate live throughput data (~15kbps verified).
-*   **RMR Loop Fix**: Resolved a `NULL pointer access` in the xApp's Python RMR library (`xAppBase.py`) which caused the monitoring script to exit prematurely.
-*   **ID Alignment**: Synchronized `gnb_id` (0x19B0) and Node IDs in the RIC's DBAAS to ensure the xApp targets the correct DU agent.
-
-### 3. Historical Data
-Logs from the reference code (`aux_code_to_delete/scenario_8`) showed similar stability issues, including `PermissionError` and `Operation not permitted` during xApp execution, suggesting this environment/build combination has historical limitations regarding OSC RIC integration.
+## Current Status
+The deployment has been updated to align with the **O-RAN-Testbed-Automation** versions from NIST. This involves a transition from the legacy "i-release" RIC components to newer, more compatible versions that support modern srsRAN Project (25.10) E2AP structures.
 
 ---
 
-## Recommended Next Steps
+## NIST Alignment & Upgrades
+The following RIC components have been upgraded to stable L/M-release equivalents:
+- **E2 Termination (E2Term)**: `9.0.1` (Supports modern E2AP unpacking)
+- **Subscription Manager (SubMgr)**: `0.14.0`
+- **E2 Manager (E2Mgr)**: `6.0.8`
+- **App Manager (AppMgr)**: `0.5.10`
+- **DBAAS**: `0.6.5`
 
-### Option A: Upgrade the RIC Platform (Recommended)
-Migrate the RIC components from the **i-release** to the **ORAN-SC K-Release** or later. The K-release has significantly better support for E2AP v2.03 and v3.0, which matches modern srsRAN releases.
-
-### Option B: Downgrade srsRAN gNB
-Build an older version of srsRAN gNB (specifically matching the commit used in previous working scenarios if available, e.g., `commit 4bf1543936` found in the auxiliary folder). This version likely uses an E2AP profile compatible with the older RIC binaries.
-
-### Option C: Use FlexRIC
-If the goal is specifically KPM monitoring and not the OSC RIC architecture itself, switching to **FlexRIC** (by OAI) is often more stable for srsRAN deployments as it has dedicated service model alignment scripts.
+These versions are specifically chosen to match the protocol profiles mentioned in the NIST automation scripts for the **OCUDU (srsRAN)** scenario.
 
 ---
+
+## Stabilization Log
+- **srsRAN gNB**: Pinned to commit `d2f4b70dda8e2c557d5b05a0ac5f92dbddda19bc` (from NIST L-release).
+- **UE Connectivity**: Optimized Open5GS security settings verify NIA0 support.
+- **xApp**: Fixed internal RMR pointer bugs and aligned health-check ports to 8093.
+
+## Roadmap
+1. [x] Upgrade RIC to L/M releases.
+2. [ ] Verify E2 Setup completion without "unpack" errors.
+3. [ ] Confirm KPM Indications (RICINDICATION) flow to Grafana.
 
 ## Current Configuration State
-*   **gNB Node ID**: `gnbd_999_070_000019b0_0` (DU)
-*   **gNB Status**: UP and Stable
-*   **UE Status**: Registered and generating data
-*   **xApp Status**: RUNNING (Listening for indications)
+*   **gNB Node ID**: `0x19B0`
+*   **srsRAN Release**: `25.10.0`
+*   **RIC Release**: `L-release/M-release stable mix`
